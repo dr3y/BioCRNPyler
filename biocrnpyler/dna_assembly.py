@@ -1,12 +1,13 @@
 #  Copyright (c) 2019, Build-A-Cell. All rights reserved.
 #  See LICENSE file in the project root directory for details.
 
-from .component import Component, DNA
+from .component import Component, DNA, Protein
 from .chemical_reaction_network import ComplexSpecies, Species
 from .mechanism import One_Step_Cooperative_Binding, Combinatorial_Cooperative_Binding
 from warnings import warn as pywarn
 import itertools as it
 import numpy as np
+from .mechanism import AutoPhosphorylation, PhosphoTransfer, Phosphorylation
 
 def warn(txt):
     pywarn(txt)
@@ -451,3 +452,80 @@ class DNAassembly(DNA):
             txt += "\n\t" + repr(self.rbs)
             txt += "\n\tprotein = " + repr(self._protein)
         return txt
+
+
+
+
+
+
+
+
+
+
+
+class PhosphoProtein(Protein):
+    def __init__(
+            self, name, length=0,  # positional arguments
+            mechanisms={},  # custom mechanisms
+            parameters={},  # customized parameters
+            attributes=[],
+            initial_conc=None,
+            **keywords
+    ):
+        self.default_mechanisms = {"autophosphorylation": AutoPhosphorylation()}
+        Protein.__init__(self=self, name=name,length=length, mechanisms=mechanisms,
+                           parameters=parameters, attributes=attributes,
+                           initial_conc=initial_conc, **keywords)
+    def get_phosphorylated_species(self):
+        """returns the phosphorylated version of this protein"""
+        mech_phos = self.mechanisms["autophosphorylation"]
+        return mech_phos.update_species(self.get_species())[0]
+    def update_species(self):
+        mech_phos = self.mechanisms["autophosphorylation"]
+        species = [self.get_species()] + mech_phos.update_species(self.get_species())
+        return species
+    def update_reactions(self):
+        mech_phos = self.mechanisms["autophosphorylation"]
+        return mech_phos.update_reactions(self.get_species(),component=self)
+
+class PhosphoTransferase(PhosphoProtein):
+    def __init__(self, name, length=0,  # positional arguments
+            mechanisms={},  # custom mechanisms
+            parameters={},  # customized parameters
+            attributes=[],
+            targets = [],
+            initial_conc=None,
+            **keywords
+            ):
+        #self.default_mechanisms = {"phosphotransfer": PhosphoTransfer()}
+        mechanisms.update({"phosphotransfer": PhosphoTransfer()})
+        PhosphoProtein.__init__(self=self, name=name,length=length, mechanisms=mechanisms,
+                           parameters=parameters, attributes=attributes,
+                           initial_conc=initial_conc, **keywords)
+        self.targets = []
+        if( not isinstance(targets,list)):
+            targets = [targets]
+        for target in targets:
+            self.targets += [self.set_species(target, material_type = "protein")]
+        #self.targets = targets
+    def update_species(self):
+        targets = self.targets
+        
+        mech_phos = self.mechanisms["autophosphorylation"]
+        species = [self.get_species()]
+        phosphoprotein = mech_phos.update_species(self.get_species())[0]
+        species += [phosphoprotein]
+        for prot in targets:
+            species += mech_phos.update_species(prot)
+        return species
+    def update_reactions(self):
+        targets = self.targets
+        mech_transfer = self.mechanisms["phosphotransfer"]
+        mech_phos = self.mechanisms["autophosphorylation"]
+
+        rxns = []
+        rxns += mech_phos.update_reactions(self.get_species(),component=self)
+        for prot in targets:
+            rxns += mech_transfer.update_reactions(self.get_species(),prot,component=self)
+            #rxns += mech_phos.update_reactions(prot,component=self)
+        return rxns

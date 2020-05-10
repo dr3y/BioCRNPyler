@@ -325,7 +325,7 @@ class Reversible_Bimolecular_Binding(Mechanism):
 
         #Get Parameters
         if part_id == None:
-            repr(s1)+"-"+repr(s2)
+            part_id = repr(s1)+"-"+repr(s2)
         if kb == None and component != None:
             kb = component.get_parameter("kb", part_id = part_id, mechanism = self)
         if ku == None and component != None:
@@ -336,6 +336,68 @@ class Reversible_Bimolecular_Binding(Mechanism):
             complex = ComplexSpecies([s1, s2])
         rxns = [Reaction([s1, s2], [complex], k=kb, k_rev=ku)]
         return rxns
+
+
+class Phosphorylation(Mechanism):
+    def __init__(self,name="phosphorylation",mechanism_type="phosphorylation"):
+        Mechanism.__init__(self,name=name, mechanism_type=mechanism_type)
+    def update_species(self,s1, **keywords):
+        phosphoprotein = ComplexSpecies([s1,Species("P",material_type="phosphate")])
+        return [phosphoprotein,Species("P",material_type="phosphate")]
+
+class AutoPhosphorylation(Phosphorylation):
+    def __init__(self,name="autophosphorylation",mechanism_type="phosphorylation"):
+        Mechanism.__init__(self,name=name, mechanism_type=mechanism_type)
+    def update_reactions(self,s1,component = None, kphos = None, kdephos = None, \
+                                                        part_id = None,**keywords):
+                                                        
+        if part_id == None:
+            part_id = s1.name+"-P"
+        if kphos == None and component != None:
+            try:
+                kphos = component.get_parameter("kphos",part_id = part_id,mechanism = self)
+            except ValueError:
+                kphos = 0
+        if kdephos == None and component != None:
+            try:
+                kdephos = component.get_parameter("kdephos",part_id = part_id,mechanism = self)
+            except ValueError:
+                kdephos = 0
+        #if component == None and (kphos == None or kdephos == None):
+        #    raise ValueError("Must pass in a Component or values for kphos, kdephos.")
+        if((kphos == 0 and kdephos == 0) or (kphos == None and kdephos == None)):
+            print(component)
+            print("kphos is {} and kdephos is {}".format(kphos,kdephos))
+            raise ValueError("Must pass in at least one value, kphos or kdephos for "+part_id)
+        rxns = []
+        phosphate = Species("P",material_type="phosphate")
+        phosphoprotein = self.update_species(s1)[0]
+        if(kphos == None):
+            kphos = 0
+        if(kdephos == None):
+            kdephos = 0
+        if(kdephos > 0 and kphos > 0):
+            rxns += [Reaction([s1,phosphate],[phosphoprotein],k = kphos,k_rev=kdephos)]
+        elif(kphos > 0):
+            rxns += [Reaction([s1,phosphate],[phosphoprotein],k = kphos)]
+        elif(kdephos > 0):
+            rxns += [Reaction([phosphoprotein],[s1,phosphate],k = kdephos)]
+        
+        return rxns
+
+class PhosphoTransfer(Phosphorylation):
+    def __init__(self,name="phosphotransfer",mechanism_type="phosphorylation"):
+        Mechanism.__init__(self,name=name, mechanism_type=mechanism_type)
+    def update_reactions(self,s1,s2,component = None, k = None,  \
+                                                        part_id = None,**keywords):
+        if part_id == None:
+            part_id = s1.name+"-"+s2.name
+        if k == None and component != None:
+            k = component.get_parameter("ktransfer",part_id = part_id,mechanism = self)
+        s1_p = self.update_species(s1)[0]
+        s2_p = self.update_species(s2)[0]
+
+        return [Reaction([s1_p,s2],[s2_p,s1],k=k)]
 
 class Combinatorial_Cooperative_Binding(Mechanism):
     """a reaction where some number of binders bind combinatorially to a bindee"""

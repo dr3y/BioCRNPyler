@@ -4,6 +4,7 @@
 from warnings import warn as pywarn
 from .chemical_reaction_network import Species
 from .parameter import Parameter
+#
 
 
 def warn(txt):
@@ -386,6 +387,7 @@ class Protein(Component):
 
     def update_reactions(self):
         return []
+
 
 
 class ChemicalComplex(Component):
