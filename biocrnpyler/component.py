@@ -371,7 +371,7 @@ class Protein(Component):
             **keywords
     ):
         self.length = length
-        self.species = Species(name, material_type="protein",
+        self.species = self.set_species(name, material_type="protein",
                                attributes=attributes)
 
         Component.__init__(self=self, name=name, mechanisms=mechanisms,

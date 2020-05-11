@@ -82,6 +82,7 @@ class RegulatedPromoter(Promoter):
             species += species_b
             complex_ = species_b[0]
             self.complexes += [complex_]
+            #print(self.name+"_"+regulator.name)
             species += mech_tx.update_species(dna = complex_, transcript = self.transcript, protein = self.assembly.protein, part_id = self.name+"_"+regulator.name)
         return species
 
@@ -454,15 +455,6 @@ class DNAassembly(DNA):
         return txt
 
 
-
-
-
-
-
-
-
-
-
 class PhosphoProtein(Protein):
     def __init__(
             self, name, length=0,  # positional arguments
@@ -527,5 +519,45 @@ class PhosphoTransferase(PhosphoProtein):
         rxns += mech_phos.update_reactions(self.get_species(),component=self)
         for prot in targets:
             rxns += mech_transfer.update_reactions(self.get_species(),prot,component=self)
+            #rxns += mech_phos.update_reactions(prot,component=self)
+        return rxns
+class Kinase(Protein):
+    def __init__(self,name,length,
+            mechanisms={},  # custom mechanisms
+            parameters={},  # customized parameters
+            attributes=[],
+            targets = [],
+            initial_conc=None,
+            **keywords
+            ):
+        mechanisms.update({"kinase": SimpleKinaseMechanism()})
+        Protein.__init__(self=self, name=name,length=length, mechanisms=mechanisms,
+                           parameters=parameters, attributes=attributes,
+                           initial_conc=initial_conc, **keywords)
+        self.targets = []
+        if( not isinstance(targets,list)):
+            targets = [targets]
+        for target in targets:
+            self.targets += [self.set_species(target, material_type = "protein")]
+    def update_species(self):
+        targets = self.targets
+        mech_phos = self.mechanisms["autophosphorylation"]
+        mech_kin = self.mechanisms["kinase"]
+        species = [self.get_species()]
+        #phosphoprotein = mech_phos.update_species(self.get_species())[0]
+        #species += [phosphoprotein]
+        for prot in targets:
+            species += mech_phos.update_species(prot)
+            species += mech_kin.update_species(self.get_species(),prot)
+        return species
+    def update_reactions(self):
+        targets = self.targets
+        mech_kin = self.mechanisms["kinase"]
+        mech_phos = self.mechanisms["autophosphorylation"]
+
+        rxns = []
+        rxns += mech_phos.update_reactions(self.get_species(),component=self)
+        for prot in targets:
+            rxns += mech_kin.update_reactions(self.get_species(),prot,component=self)
             #rxns += mech_phos.update_reactions(prot,component=self)
         return rxns

@@ -215,7 +215,6 @@ class Transcription_MM(MichalisMentenCopyRXN):
         rxns += MichalisMentenCopyRXN.update_reactions(self, dna, transcript,
                                                        complex=complex, kb=kb,
                                                        ku=ku, kcat=ktx)
-
         return rxns
 
 
@@ -384,6 +383,58 @@ class AutoPhosphorylation(Phosphorylation):
             rxns += [Reaction([phosphoprotein],[s1,phosphate],k = kdephos)]
         
         return rxns
+class SimpleKinaseMechanism(Phosphorylation):
+    def __init__(self,name="Kinase",mechanism_type="phosphorylation"):
+        Mechanism.__init__(self,name=name, mechanism_type=mechanism_type)
+        self.phosphate = Species("P",material_type="phosphate")
+    def update_species(self,s1,s2):
+        #s1 causes s2 to get phosphorylated. So, we need to update species
+        #with s2's phosphorylated form
+        return [ComplexSpecies(s2,self.phosphate),self.phosphate]
+    def update_reactions(self,s1,s2,component = None, k = None,  \
+                                                    part_id = None,**keywords):
+        if part_id == None:
+            part_id = s1.name+"-"+s2.name
+        if k == None and component != None:
+            k = component.get_parameter("kkinase",part_id = part_id,mechanism = self)
+        s2_p = ComplexSpecies([s2,self.phosphate])
+        return [Reaction([s1,s2],[s1,s2_p],k=k)]
+
+class TwoStepKinaseMechanism(Phosphorylation):
+    def __init__(self,name="Kinase",mechanism_type="phosphorylation"):
+        Mechanism.__init__(self,name=name, mechanism_type=mechanism_type)
+        self.phosphate = Species("P",material_type="phosphate")
+    def update_species(self,s1,s2):
+        #s1 causes s2 to get phosphorylated. So, we need to update species
+        #with s2's phosphorylated form
+        s2_p = ComplexSpecies(s2,self.phosphate)
+        s1_s2_complex = ComplexSpecies([s1,s2])
+        s1_s2_plus_p = ComplexSpecies([s1,s2_p])
+        return [s2_p,s1_s2_complex,s1_s2_plus_p,self.phosphate]
+    def update_reactions(self,s1,s2,component = None, kb1 = None, ku1=None,kkinase=None, kb2 = None, ku2=None, \
+                                                    part_id = None,**keywords):
+        """this mechanism involves three reactions:
+        1) s1 binds to s2 to make Complex(s1,s2) this uses kb1 and ku1 for binding and unbinding
+        2) Complex(s1,s2) + phosphate makes Complex(s1,Complex(s2,phosphate)) this uses kkinase, and only goes forwards
+        3) Complex(s1,Complex(s2,phosphate)) unbinds to form s1, Complex(s2,phosphate). this uses kb2 and ku2
+        """
+        if part_id == None:
+            part_id = s1.name+"-P-"+s2.name
+        if kkinase == None and component != None:
+            kkinase = component.get_parameter("kkinase",part_id = part_id,mechanism = self)
+        if ku1 == None and component != None:
+            ku1 = component.get_parameter("ku1",part_id = part_id,mechanism = self)
+        if kb1 == None and component != None:
+            kb1 = component.get_parameter("kb1",part_id = part_id,mechanism = self)
+        if kb2 == None and component != None:
+            kb2 = component.get_parameter("kb2",part_id = part_id,mechanism = self)
+        if ku2 == None and component != None:
+            ku2 = component.get_parameter("ku2",part_id = part_id,mechanism = self)
+        specs = self.update_species(s1,s2)
+        binding = Reaction([s1,s2],specs[1],k=kb1,k_rev=ku1)
+        kinase = Reaction([specs[1],self.phosphate],[specs[2]],k=kkinase)
+        kunbinding = Reaction([specs[2]],[s1,specs[0]],k=ku2,k_rev=kb2)
+        return [binding,kinase,kunbinding]
 
 class PhosphoTransfer(Phosphorylation):
     def __init__(self,name="phosphotransfer",mechanism_type="phosphorylation"):
@@ -532,7 +583,10 @@ class One_Step_Cooperative_Binding(Mechanism):
             raise TypeError("complex_species keyword must be a str, Species, or None.")
 
         if complex == None:
-            complex = ComplexSpecies([binder]*int(cooperativity)+[bindee], name = complex_name, material_type = material_type)
+            if(material_type==None):
+                complex = ComplexSpecies([binder]*int(cooperativity)+[bindee], name = complex_name)
+            else:
+                complex = ComplexSpecies([binder]*int(cooperativity)+[bindee], name = complex_name, material_type = material_type)
 
         
         return [complex]
@@ -571,7 +625,8 @@ class Two_Step_Cooperative_Binding(Mechanism):
                  mechanism_type="cooperative_binding"):
         Mechanism.__init__(self, name, mechanism_type)
 
-    def update_species(self, binder, bindee, component = None, complex_species = None, n_mer_species = None, cooperativity=None, part_id = None, **keywords):
+    def update_species(self, binder, bindee, component = None, complex_species = None, \
+                            n_mer_species = None, cooperativity=None, part_id = None, **keywords):
 
         if part_id == None:
             part_id = repr(binder)+"-"+repr(bindee)

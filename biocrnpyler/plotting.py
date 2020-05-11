@@ -12,7 +12,7 @@ import statistics
 from bokeh.models import (BoxSelectTool, Circle,Square, EdgesAndLinkedNodes, HoverTool,
                           MultiLine, NodesAndLinkedEdges, Plot, Range1d, TapTool,PanTool,WheelZoomTool)
 from bokeh.palettes import Spectral4
-from bokeh.models.graphs import from_networkx
+from bokeh.plotting import from_networkx
 from fa2 import ForceAtlas2
 import numpy as np
 from matplotlib import cm
@@ -169,6 +169,8 @@ def generate_networkx_graph(CRN,useweights=False):
             mycol = "grey"
         elif(specie.material_type=="rna"):
             mycol = "orange"
+        elif(specie.material_type=="phosphate"):
+            mycol = "yellow"
         nodedict[specie]=allnodenum
         CRNgraph.add_node(allnodenum)
         CRNgraph.nodes[allnodenum]["type"]=str(specie.material_type)
