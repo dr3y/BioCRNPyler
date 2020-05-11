@@ -390,7 +390,7 @@ class SimpleKinaseMechanism(Phosphorylation):
     def update_species(self,s1,s2):
         #s1 causes s2 to get phosphorylated. So, we need to update species
         #with s2's phosphorylated form
-        return [ComplexSpecies(s2,self.phosphate),self.phosphate]
+        return [ComplexSpecies([s2,self.phosphate]),self.phosphate]
     def update_reactions(self,s1,s2,component = None, k = None,  \
                                                     part_id = None,**keywords):
         if part_id == None:

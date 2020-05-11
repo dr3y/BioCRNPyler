@@ -171,6 +171,8 @@ def generate_networkx_graph(CRN,useweights=False):
             mycol = "orange"
         elif(specie.material_type=="phosphate"):
             mycol = "yellow"
+        elif(specie.material_type=="ligand"):
+            mycol = "pink"
         nodedict[specie]=allnodenum
         CRNgraph.add_node(allnodenum)
         CRNgraph.nodes[allnodenum]["type"]=str(specie.material_type)

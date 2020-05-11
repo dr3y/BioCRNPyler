@@ -7,7 +7,7 @@ from .mechanism import One_Step_Cooperative_Binding, Combinatorial_Cooperative_B
 from warnings import warn as pywarn
 import itertools as it
 import numpy as np
-from .mechanism import AutoPhosphorylation, PhosphoTransfer, Phosphorylation
+from .mechanism import AutoPhosphorylation, PhosphoTransfer, Phosphorylation, SimpleKinaseMechanism
 
 def warn(txt):
     pywarn(txt)
@@ -522,7 +522,7 @@ class PhosphoTransferase(PhosphoProtein):
             #rxns += mech_phos.update_reactions(prot,component=self)
         return rxns
 class Kinase(Protein):
-    def __init__(self,name,length,
+    def __init__(self,name,length=None,
             mechanisms={},  # custom mechanisms
             parameters={},  # customized parameters
             attributes=[],
@@ -530,7 +530,8 @@ class Kinase(Protein):
             initial_conc=None,
             **keywords
             ):
-        mechanisms.update({"kinase": SimpleKinaseMechanism()})
+        mechanisms.update({"kinase": SimpleKinaseMechanism(),
+                            "autophosphorylation":AutoPhosphorylation()})
         Protein.__init__(self=self, name=name,length=length, mechanisms=mechanisms,
                            parameters=parameters, attributes=attributes,
                            initial_conc=initial_conc, **keywords)
