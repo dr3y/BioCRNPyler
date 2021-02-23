@@ -525,7 +525,7 @@ def plotDesign(design,renderer = None,part_renderers=None,\
         ax.set_xlim([start-addedsize,end+addedsize])
         ax.set_ylim([-15,15])
         if(outfig is not None):
-            fig.savefig(outfig,format='png')
+            fig.savefig(outfig)
         else:
             plt.show()
     else:
@@ -550,6 +550,7 @@ def plotConstruct(DNA_construct_obj,dna_renderer=None,\
     if(PLOT_DNA and plot_dna_test):
         plotDesign(design,circular=circular,title=DNA_construct_obj.get_species(),outfig=outfig)
         if(plot_rnas):
+            rnact = 0
             rnas_and_proteins = DNA_construct_obj.enumerate_constructs()
             for component in rnas_and_proteins:
                 if(component.get_species().material_type=="rna"):
@@ -560,6 +561,10 @@ def plotConstruct(DNA_construct_obj,dna_renderer=None,\
                 for part in rnadesign:
                     if("edgecolor" not in part['opts']):
                         part['opts'].update({'edgecolor':rnacolor})
-                plotDesign(rnadesign,renderer=rna_renderer,title=component.get_species())
+                rnafig = None
+                if(outfig is not None):
+                    rnafig = "rna"+str(rnact)+"_"+outfig
+                plotDesign(rnadesign,renderer=rna_renderer,title=component.get_species(),outfig=rnafig)
+                rnact += 1
     else:
         print(DNA_construct_obj)
