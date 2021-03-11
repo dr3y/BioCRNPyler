@@ -600,10 +600,7 @@ class CRNPlotter:
         self.clear_dicts()
     def renderMixture(self,mixture,crn = None,rna_renderer=None,dna_renderer=None,store=True):
         """creates dnaplotlib images for all relevant species in a mixture"""
-        if(crn is None):
-            mycrn = mixture.compile_crn()
-        else:
-            mycrn = crn
+        mycrn,mixture_components = mixture.compile_crn(return_enumerated_components = True)
         if(rna_renderer is None and self.rna_renderer is not None):
             rna_renderer = self.rna_renderer
         else:
@@ -613,7 +610,7 @@ class CRNPlotter:
         else:
             raise ValueError("dna_renderer cannot be None")
         self.clear_dicts()
-        for component in mixture.component_enumeration():
+        for component in mixture_components:
             if(isinstance(component,Construct)):
                 a = self.make_dpls_from_construct(component)
         plt.ioff()
@@ -637,8 +634,10 @@ class CRNPlotter:
                     imagestream = io.BytesIO()
                     fig = ax.get_figure()
                     fig.savefig(imagestream,bbox_inches='tight')
+                    plt.close(fig)
                     png_str = base64.b64encode(imagestream.getvalue())
                     self.species_image_dict[species]= png_str
+        plt.ion()
         return self.species_image_dict
     def renderConstruct(self,construct_obj,rna_renderer=None,dna_renderer=None,showlabels=True, render_rna=False):
         if(rna_renderer is None and self.rna_renderer is not None):
@@ -870,9 +869,9 @@ def render_constructs(constructs,color_dictionary=None):
         axes += [plotter.renderConstruct(construct)]
     return axes
 
-def render_mixture(mixture,crn,color_dictionary=None):
-    plotter = CRNPlotter(colordict=color_dictionary)
-    return plotter.renderMixture(mixture,crn)
+def render_mixture(mixture,colordict=None):
+    plotter = CRNPlotter(colordict=colordict)
+    return plotter.renderMixture(mixture)
 def render_network_bokeh(CRN,layout="force",\
                         iterations=2000,rseed=30,posscale=1,**keywords):
     DG, DGspec, DGrxn = generate_networkx_graph(CRN,**keywords) #this creates the networkx objects
