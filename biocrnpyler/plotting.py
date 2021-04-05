@@ -709,9 +709,10 @@ class CRNPlotter:
                         binders = []
                         base_simplepart = None #we must figure out who the base is. This is how we do that
                         for specie in monomer.get_species(recursive=True):
+                            print(specie)
                             if(isinstance(specie,ComplexSpecies)):
                                 continue
-                            if(specie.material_type=='part'):
+                            if('part' in specie.material_type):
                                 #this material type is only made by dna constructs
                                 base_simplepart = copy.copy(self.make_dpl_from_species(specie)) #copy it because now we make it bound to stuff
                                 #ideally you already ran make_dpl_from_construct and so this will be populated
