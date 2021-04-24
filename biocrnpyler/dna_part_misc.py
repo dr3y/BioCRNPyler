@@ -8,7 +8,7 @@ from warnings import warn
 from .dna_part import DNA_part
 from .mechanisms_binding import One_Step_Cooperative_Binding
 from .species import Species, ComplexSpecies, Complex
-from .mechanisms_integrase import BasicIntegration
+from .mechanisms_integrase import BasicIntegration, EnzymeIntegrationBinding
 from .component import Component
 from .components_basic import DNA
 
@@ -35,16 +35,18 @@ class DNABindingSite(DNA_part):
         spec += self.binders
         if(self.dna_to_bind is not None):
             mech_b = self.mechanisms["binding"]
-            for binder in self.binders:
-                spec += mech_b.update_species(binder,self.dna_to_bind,component=self,part_id = binder.name)
-                #TODO: different proteins probably have different affinity to bind this sequence
+            if(mech_b is not None):
+                for binder in self.binders:
+                    spec += mech_b.update_species(binder,self.dna_to_bind,component=self,part_id = binder.name)
+                    #TODO: different proteins probably have different affinity to bind this sequence
         return spec
     def update_reactions(self):
         rxns = []
         if(self.dna_to_bind is not None):
             mech_b = self.mechanisms["binding"]
-            for binder in self.binders:
-                rxns += mech_b.update_reactions(binder,self.dna_to_bind,component=self,part_id = binder.name)
+            if(mech_b is not None):
+                for binder in self.binders:
+                    rxns += mech_b.update_reactions(binder,self.dna_to_bind,component=self,part_id = binder.name)
         return rxns
     def update_component(self,internal_species=None,**keywords):
         """returns a copy of this component, except with the proper fields updated"""
@@ -65,7 +67,7 @@ class IntegraseSite(DNABindingSite):
         self.complexed_version = None
         self.integrase_binding=integrase_binding
         DNABindingSite.__init__(self,name,self.integrase,no_stop_codons=no_stop_codons,**keywords)
-        self.add_mechanism(BasicIntegration(self.integrase.name))
+        self.add_mechanism(EnzymeIntegrationBinding(self.integrase.name))
     def __repr__(self):
         myname = self.name
         if(self.site_type in integrase_sites):
@@ -125,7 +127,9 @@ class IntegraseSite(DNABindingSite):
                 othersite = othersite_tpl[0]
                 intermolecular = othersite_tpl[1]
                 populate = True #by default, add the appropriate data members to the other site
+
                 if(not intermolecular):
+                    pass
                     #the reaction with the site in question is intramolecular
                     #that means we should only populate the other site if our internal_species
                     #has the proper location bound by integrase
@@ -134,12 +138,12 @@ class IntegraseSite(DNABindingSite):
                     #the linked site is populated because then the linked site knows not to create the reaction.
                     #after all, there is one reaction per two sites
                     
-                    if(self.integrase_binding):
-                        otherisbound = othersite.integrase in internal_species.parent[othersite.position]
-                    else:
-                        otherisbound = not isinstance(internal_species.parent[othersite.position],ComplexSpecies)
-                    if(not otherisbound):
-                        populate = False
+                    #if(self.integrase_binding):
+                    #    otherisbound = othersite.integrase in internal_species.parent[othersite.position]
+                    #else:
+                    #    otherisbound = not isinstance(internal_species.parent[othersite.position],ComplexSpecies)
+                    #if(not otherisbound):
+                    #    populate = False
                 if(populate):
                     #if the reaction is intermolecular then the linked site is populated.
                     #this means only a fully populated site would have all the information to create the reaction
@@ -150,10 +154,8 @@ class IntegraseSite(DNABindingSite):
                     assert((othersite,intermolecular) in newcomp.linked_sites)
             return newcomp
     def update_species(self):
-        if(self.integrase_binding):
-            return DNABindingSite.update_species(self)
-        else:
-            return self.binders
+        int_mech = self.get_mechanism('integration')
+        return int_mech.update_species(self.integrase,self.dna_to_bind,component=self,part_id = self.integrase.name)
     def update_reactions(self):
         if(self.integrase_binding):
             reactions = DNABindingSite.update_reactions(self)
@@ -185,28 +187,30 @@ class IntegraseSite(DNABindingSite):
             if(not intermolecular):
                 #this is an intramolecular reaction so we don't care about the other site's DNAs
                 integrated_dnas = []
-                site_is_bound = site.integrase in complex_parent[site.position]
-                site_isnt_bound = not isinstance(complex_parent[site.position],ComplexSpecies)
-                if(( (self.integrase_binding and site_is_bound) or (not self.integrase_binding and site_isnt_bound)) 
-                                                                    and complex_parent in self.linked_sites[site_tpl][1]):
-                    #make sure that both this site and the other site are bound
-                    for integrase_function in self.linked_sites[site_tpl][0]:
-                        integr = integrase_function.create_polymer([complex_parent],bound=self.integrase_binding)
-                        integrated_dnas += [integr]
-                    reactions += int_mech.update_reactions([complex_parent],integrated_dnas,component=self,part_id = self.integrase.name)
-                    populate = False
+                #idea: run int_mech.update_reactions and if it yields nothing then assume it didnt work because of incompatiblity
+                #then I don't have to check for binding here!
+                gen_rxns = int_mech.update_reactions(self.dna_to_bind,self.dna_to_bind.parent[site.position],self.linked_sites[site_tpl][0],component=self,part_id = self.integrase.name)
+
+                for rxn in gen_rxns:
+                    print(rxn)
+
+                populate = False
             else:
                 #this is for intermolecular reactions. now "other_dna" is possible
                 #go through all possible "other" dnas then calculate for each RNA
                 for other_dna in self.linked_sites[site_tpl][1]:
+                    gen_rxns = int_mech.update_reactions(self.dna_to_bind,other_dna[site.position],self.linked_sites[site_tpl][0],component=self,part_id = self.integrase.name)
                     #other_dna are placed there by other sites that already got evaluated
-                    integrated_dnas = []
-                    for integrase_function in self.linked_sites[site_tpl][0]:
+                    for rxn in gen_rxns:
+                        print(rxn)
+                    
+                    #integrated_dnas = []
+                    #for integrase_function in self.linked_sites[site_tpl][0]:
                         #for every result that we could get, generate it
                         #the next line generates the OrderedPolymerSpecies which results from recombination
-                        integrated_dnas += [integrase_function.create_polymer([complex_parent,other_dna],bound = self.integrase_binding)]
-                    
-                    reactions += int_mech.update_reactions([complex_parent,other_dna],integrated_dnas,component=self,part_id = self.integrase.name)
+                    #    integrated_dnas += [integrase_function.create_polymer([complex_parent,other_dna])]
+                    reactions += gen_rxns
+                    #reactions += int_mech.update_reactions([complex_parent,other_dna],integrated_dnas,component=self,part_id = self.integrase.name)
             #next part updates the linked site
             if(populate and (complex_parent is not None) and (self,intermolecular) in site.linked_sites and\
                  (complex_parent not in site.linked_sites[(self,intermolecular)][1])):

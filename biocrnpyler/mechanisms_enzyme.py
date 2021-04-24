@@ -5,6 +5,7 @@
 from .mechanism import Mechanism
 from .reaction import Reaction
 from .species import Complex
+from .mechanisms_binding import One_Step_Cooperative_Binding
 
 
 class BasicCatalysis(Mechanism):
