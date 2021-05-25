@@ -325,7 +325,10 @@ def generate_networkx_graph(CRN,useweights=False,use_pretty_print=False,pp_show_
             CRNgraph.nodes[allnodenum]["k_r"] = str(
                 rxn.propensity_type.k_reverse)
         else:
-            CRNgraph.nodes[allnodenum]["k"] = str(rxn.propensity_type.k)
+            try:
+                CRNgraph.nodes[allnodenum]["k"] = str(rxn.propensity_type.k)
+            except AttributeError:
+                CRNgraph.nodes[allnodenum]["k"] = 'undefined'
             CRNgraph.nodes[allnodenum]["k_r"] = ''
 
         reaction_color = member_dictionary_search(rxn,colordict)
@@ -336,8 +339,14 @@ def generate_networkx_graph(CRN,useweights=False,use_pretty_print=False,pp_show_
             kval = rxn.propensity_type.k_forward
             CRNgraph.nodes[allnodenum]["k"] = str(kval)
         else:
-            kval = rxn.propensity_type.k
-            CRNgraph.nodes[allnodenum]["k"] = str(rxn.propensity_type.k)
+            try:
+                kval = rxn.propensity_type.k
+            except AttributeError:
+                kval = 1
+            try:
+                CRNgraph.nodes[allnodenum]["k"] = str(rxn.propensity_type.k)
+            except AttributeError:
+                CRNgraph.nodes[allnodenum]["k"] = 'undefined'
 
         if(not useweights):
             kval = 1
