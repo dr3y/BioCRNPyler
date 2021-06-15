@@ -603,7 +603,7 @@ class CRNPlotter:
             self.cmap = None
         self.color_counter = 0
         self.clear_dicts()
-    def renderMixture(self,mixture,crn = None,rna_renderer=None,dna_renderer=None,store=True):
+    def renderMixture(self,mixture,crn = None,rna_renderer=None,dna_renderer=None,store=True,output=None):
         """creates dnaplotlib images for all relevant species in a mixture"""
         if(crn is None):
             mycrn = mixture.compile_crn()
@@ -641,6 +641,8 @@ class CRNPlotter:
                     #this part converts the matplotlibplot into a base64-encoded image
                     imagestream = io.BytesIO()
                     fig = ax.get_figure()
+                    if(output is not None):
+                        fig.savefig(str(species)+"_"+output+".pdf",bbox_inches='tight')
                     fig.savefig(imagestream,bbox_inches='tight')
                     png_str = base64.b64encode(imagestream.getvalue())
                     self.species_image_dict[species]= png_str
@@ -849,9 +851,9 @@ def render_constructs(constructs,color_dictionary=None):
         axes += [plotter.renderConstruct(construct)]
     return axes
 
-def render_mixture(mixture,crn,color_dictionary=None):
+def render_mixture(mixture,crn,color_dictionary=None,output = None):
     plotter = CRNPlotter(colordict=color_dictionary)
-    return plotter.renderMixture(mixture,crn)
+    return plotter.renderMixture(mixture,crn,output=output)
 def render_network_bokeh(CRN,layout="force",\
                         iterations=2000,rseed=30,posscale=1,**keywords):
     DG, DGspec, DGrxn = generate_networkx_graph(CRN,**keywords) #this creates the networkx objects
