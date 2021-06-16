@@ -82,7 +82,7 @@ class IntegraseSite(DNABindingSite):
     def update_integrase(self,int_name):
         self.integrase = Component.set_species(int_name,material_type='protein')
     def __hash__(self):
-        sumhash = DNABindingSite.__hash__(self) + self.dna_to_bind.__hash__()
+        sumhash = hash((DNABindingSite,self.dna_to_bind))
         return sumhash
     def get_complexed_species(self,dna):
         recomp = Complex([dna,self.integrase,self.integrase])
@@ -120,6 +120,22 @@ class IntegraseSite(DNABindingSite):
                 #what we are doing here is swapping out the link to this site with
                 #a link to the returned component (the copied site)
                 self_tuple = (self,intermolecular)
+                if(self_tuple not in othersite.linked_sites):
+                    for key in othersite.linked_sites:
+                        if(key != self_tuple):
+                            print(f"{key} is not the same as {self_tuple}")
+                            print(key[0]==self_tuple[0])
+                        else:
+                            print(key[0].dna_to_bind)
+                            print(self_tuple[0].dna_to_bind)
+                            print(f"{key} is the same as {self_tuple}")
+                            print(key == self_tuple)
+                            print(hash(key))
+                            print(hash(self_tuple))
+                            
+                            print(self_tuple in othersite.linked_sites)
+                    raise KeyError(f"{self_tuple} not found in {othersite}.linked_sites, instead found: {othersite.linked_sites.keys()}")
+                    
                 mystuff = copy.copy(othersite.linked_sites[self_tuple])
                 del othersite.linked_sites[self_tuple]
                 othersite.linked_sites[(newcomp,intermolecular)] = mystuff

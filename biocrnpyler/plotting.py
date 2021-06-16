@@ -603,10 +603,14 @@ class CRNPlotter:
             self.cmap = None
         self.color_counter = 0
         self.clear_dicts()
-    def renderMixture(self,mixture,crn = None,rna_renderer=None,dna_renderer=None,store=True,output=None):
+    def renderMixture(self,mixture,crn = None,rna_renderer=None,dna_renderer=None,store=True,output=None,recursion_depth=4):
         """creates dnaplotlib images for all relevant species in a mixture"""
+        components = None
         if(crn is None):
-            mycrn = mixture.compile_crn()
+            mycrn,components = mixture.compile_crn(return_enumerated_components = True,
+                                         initial_concentrations_at_end = True,
+                                         copy_objects = False,
+                                         add_reaction_species = False,recursion_depth=recursion_depth)
         else:
             mycrn = crn
         if(rna_renderer is None and self.rna_renderer is not None):
@@ -618,7 +622,12 @@ class CRNPlotter:
         else:
             raise ValueError("dna_renderer cannot be None")
         self.clear_dicts()
-        for component in mixture.component_enumeration():
+        if(components is None):
+            _,components = mixture.compile_crn(return_enumerated_components = True,
+                                            initial_concentrations_at_end = True,
+                                            copy_objects = False,
+                                            add_reaction_species = False,recursion_depth=recursion_depth)
+        for component in components:
             if(isinstance(component,Construct)):
                 a = self.make_dpls_from_construct(component)
         plt.ioff()
@@ -642,7 +651,7 @@ class CRNPlotter:
                     imagestream = io.BytesIO()
                     fig = ax.get_figure()
                     if(output is not None):
-                        fig.savefig(str(species)+"_"+output+".pdf",bbox_inches='tight')
+                        fig.savefig(str(species).replace("forward","f").replace("reverse","r").replace("_","")+"_"+output+".pdf",bbox_inches='tight')
                     fig.savefig(imagestream,bbox_inches='tight')
                     png_str = base64.b64encode(imagestream.getvalue())
                     self.species_image_dict[species]= png_str
