@@ -331,7 +331,12 @@ def generate_networkx_graph(CRN,useweights=False,use_pretty_print=False,pp_show_
 
         reaction_color = member_dictionary_search(rxn,colordict)
         if(reaction_color is None):
-            reaction_color = default_reaction_color
+            if(hasattr(rxn,"site1") and ("reaction",rxn.site1) in colordict):
+                reaction_color = colordict[("reaction",rxn.site1)]
+            elif(hasattr(rxn,"site2") and ("reaction",rxn.site2) in colordict):
+                reaction_color = colordict[("reaction",rxn.site2)]
+            if(reaction_color is None):
+                reaction_color = default_reaction_color
         # CRNgraph.nodes[allnodenum]
         if isinstance(rxn.propensity_type, MassAction):
             kval = rxn.propensity_type.k_forward

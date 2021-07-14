@@ -203,7 +203,10 @@ class Reaction(object):
         else:
             raise NotImplementedError
         return False
-
+    def integrase_reaction(self,site1,site2,integrase):
+        self.site1 = site1
+        self.site2 = site2
+        self.integrase=integrase
     @property
     def species(self) -> List[Species]:
         """returns a list of species in the reactions collected from the inputs

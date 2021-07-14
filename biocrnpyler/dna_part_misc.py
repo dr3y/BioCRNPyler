@@ -197,7 +197,10 @@ class IntegraseSite(DNABindingSite):
                     for integrase_function in self.linked_sites[site_tpl][0]:
                         integr = integrase_function.create_polymer([complex_parent])
                         integrated_dnas += [integr]
-                    reactions += int_mech.update_reactions([complex_parent],integrated_dnas,component=self,part_id = self.integrase.name)
+                    new_rxns = int_mech.update_reactions([complex_parent],integrated_dnas,component=self,part_id = self.integrase.name)
+                    for rxn in new_rxns:
+                        rxn.integrase_reaction(self.name,site.name,self.integrase.name)
+                    reactions += new_rxns
                     populate = False
             else:
                 #this is for intermolecular reactions. now "other_dna" is possible
@@ -210,7 +213,10 @@ class IntegraseSite(DNABindingSite):
                         #the next line generates the OrderedPolymerSpecies which results from recombination
                         integrated_dnas += [integrase_function.create_polymer([complex_parent,other_dna])]
                     
-                    reactions += int_mech.update_reactions([complex_parent,other_dna],integrated_dnas,component=self,part_id = self.integrase.name)
+                    new_rxns = int_mech.update_reactions([complex_parent,other_dna],integrated_dnas,component=self,part_id = self.integrase.name)
+                    for rxn in new_rxns:
+                        rxn.integrase_reaction(self.name,site.name,self.integrase.name)
+                    reactions += new_rxns
             #next part updates the linked site
             if(populate and (complex_parent is not None) and (self,intermolecular) in site.linked_sites and\
                  (complex_parent not in site.linked_sites[(self,intermolecular)][1])):
